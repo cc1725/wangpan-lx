@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短链接管理后台</title>
+    <style>
+        /* 复用之前的基础样式 */
+        :root {
+            --primary-color: #007AFF;
+            --background-color: #F2F2F7;
+            --card-background: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
+            background-color: var(--background-color);
+            color: #1C1C1E;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* 管理后台特定样式 */
+        .textarea-container {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #E5E5EA;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E5E5EA;
+        }
+
+        .results-table th {
+            background-color: #F2F2F7;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .nav-links a {
+            color: var(--primary-color);
+            text-decoration: none;
+            margin: 0 12px;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-success {
+            background-color: #34C759;
+            color: white;
+        }
+
+        .status-error {
+            background-color: #FF3B30;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-links">
+            <a href="/">首页</a>
+            <a href="/admin.html">管理后台</a>
+        </div>
+        <div class="card">
+            <h1>批量生成短链接</h1>
+            <p class="description">每行输入一个URL，系统将批量生成短链接</p>
+            
+            <div class="textarea-container">
+                <textarea id="urlsInput" placeholder="请输入URL列表，每行一个URL&#10;例如：&#10;https://example.com/page1&#10;https://example.com/page2"></textarea>
+            </div>
+            
+            <button onclick="generateBatch()">批量生成</button>
+            
+            <div id="results">
+                <table class="results-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>原始URL</th>
+                            <th>短链接</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generateBatch() {
+            const urlsInput = document.getElementById('urlsInput');
+            const resultsBody = document.getElementById('resultsBody');
+            const table = document.querySelector('.results-table');
+            
+            const urls = urlsInput.value.split('\n').filter(url => url.trim());
+            
+            if (urls.length === 0) {
+                alert('请输入至少一个URL');
+                return;
+            }
+
+            table.style.display = 'table';
+            resultsBody.innerHTML = '';
+
+            for (const url of urls) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${url}</td>
+                    <td>处理中...</td>
+                    <td><span class="status">处理中</span></td>
+                    <td></td>
+                `;
+                resultsBody.appendChild(row);
+
+                try {
+                    const response = await fetch('/api/shorten', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ url: url.trim() })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.shortUrl) {
+                        row.innerHTML = `
+                            <td>${url}</td>
+                            <td>${data.shortUrl}</td>
+                            <td><span class="status status-success">成功</span></td>
+                            <td><button class="copy-btn" onclick="copyToClipboard('${data.shortUrl}')">复制</button></td>
+                        `;
+                    }
+                } catch (error) {
+                    row.innerHTML = `
+                        <td>${url}</td>
+                        <td>生成失败</td>
+                        <td><span class="status status-error">失败</span></td>
+                        <td></td>
+                    `;
+                }
+            }
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('已复制到剪贴板');
+            } catch (err) {
+                alert('复制失败，请手动复制');
+            }
+        }
+    </script>
+</body>
+</html> 

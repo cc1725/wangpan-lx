@@ -1,0 +1,20 @@
+mkdir url-shortener
+cd url-shortener
+npm init -y
+pnpm install express shortid mobile-detect --registry=https://registry.npmmirror.com/
+
+# 构建镜像
+docker build -t url-shortener .
+
+# 运行容器
+docker run -p 3000:3000 url-shortener
+
+node build.js
+
+# 清理旧的构建文件
+rm -rf dist url-shortener.zip
+
+# 打包
+cd dist
+zip -r ../url-shortener.zip ./*
+cd ..
